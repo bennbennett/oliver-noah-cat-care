@@ -20,6 +20,7 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         oliver: "bg-cat-orange text-primary-foreground hover:bg-cat-orange/90 shadow-lg",
         noah: "bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg",
+        stacey: "bg-cat-purple text-primary-foreground hover:bg-cat-purple/90 shadow-lg",
         success: "bg-success text-success-foreground hover:bg-success/90",
       },
       size: {

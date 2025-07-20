@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface CheckIn {
   date: string;
-  caregiver: 'oliver' | 'noah';
+  caregiver: 'oliver' | 'noah' | 'stacey';
   timestamp: string;
 }
 
@@ -43,13 +43,13 @@ const CatCareTracker = () => {
     localStorage.setItem('catCareCheckIns', JSON.stringify(checkIns));
   }, [checkIns]);
 
-  const handleCheckIn = (caregiver: 'oliver' | 'noah') => {
+  const handleCheckIn = (caregiver: 'oliver' | 'noah' | 'stacey') => {
     const today = format(new Date(), 'yyyy-MM-dd');
     
     if (todayCheckedIn) {
       toast({
         title: "Already checked in today!",
-        description: `${todayCheckedIn === 'oliver' ? 'Oliver' : 'Noah'} already checked in for today.`,
+        description: `${todayCheckedIn === 'oliver' ? 'Oliver' : todayCheckedIn === 'noah' ? 'Noah' : 'Stacey'} already checked in for today.`,
         variant: "destructive",
       });
       return;
@@ -66,11 +66,11 @@ const CatCareTracker = () => {
 
     toast({
       title: "Check-in successful! 🐱",
-      description: `${caregiver === 'oliver' ? 'Oliver' : 'Noah'} checked in for today. Great job taking care of Jupi!`,
+      description: `${caregiver === 'oliver' ? 'Oliver' : caregiver === 'noah' ? 'Noah' : 'Stacey'} checked in for today. Great job taking care of Jupi!`,
     });
   };
 
-  const getEarnings = (caregiver: 'oliver' | 'noah') => {
+  const getEarnings = (caregiver: 'oliver' | 'noah' | 'stacey') => {
     return checkIns.filter(checkIn => checkIn.caregiver === caregiver).length * payPerDay;
   };
 
@@ -110,7 +110,7 @@ const CatCareTracker = () => {
             {todayCheckedIn ? (
               <div className="text-center space-y-3">
                 <Badge variant="secondary" className="text-sm px-4 py-2">
-                  ✅ {todayCheckedIn === 'oliver' ? 'Oliver' : 'Noah'} checked in today!
+                  ✅ {todayCheckedIn === 'oliver' ? 'Oliver' : todayCheckedIn === 'noah' ? 'Noah' : 'Stacey'} checked in today!
                 </Badge>
                 <p className="text-muted-foreground text-sm">
                   Thanks for taking great care of Jupi! 🐾
@@ -121,7 +121,7 @@ const CatCareTracker = () => {
                 <p className="text-center text-muted-foreground text-sm">
                   Who's taking care of Jupi today?
                 </p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <Button 
                     variant="oliver" 
                     size="lg"
@@ -140,6 +140,15 @@ const CatCareTracker = () => {
                     <User className="h-5 w-5" />
                     Noah
                   </Button>
+                  <Button 
+                    variant="stacey" 
+                    size="lg"
+                    onClick={() => handleCheckIn('stacey')}
+                    className="h-16 text-lg font-semibold"
+                  >
+                    <User className="h-5 w-5" />
+                    Stacey
+                  </Button>
                 </div>
               </div>
             )}
@@ -155,7 +164,7 @@ const CatCareTracker = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="text-center space-y-2">
                 <div className="text-2xl font-bold text-cat-orange">
                   ${getEarnings('oliver')}
@@ -178,6 +187,17 @@ const CatCareTracker = () => {
                   {checkIns.filter(c => c.caregiver === 'noah').length} days
                 </div>
               </div>
+              <div className="text-center space-y-2">
+                <div className="text-2xl font-bold text-cat-purple">
+                  ${getEarnings('stacey')}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Stacey
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {checkIns.filter(c => c.caregiver === 'stacey').length} days
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -197,10 +217,12 @@ const CatCareTracker = () => {
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${
-                        checkIn.caregiver === 'oliver' ? 'bg-cat-orange' : 'bg-accent'
+                        checkIn.caregiver === 'oliver' ? 'bg-cat-orange' : 
+                        checkIn.caregiver === 'noah' ? 'bg-accent' : 'bg-cat-purple'
                       }`} />
                       <span className="font-medium">
-                        {checkIn.caregiver === 'oliver' ? 'Oliver' : 'Noah'}
+                        {checkIn.caregiver === 'oliver' ? 'Oliver' : 
+                         checkIn.caregiver === 'noah' ? 'Noah' : 'Stacey'}
                       </span>
                     </div>
                     <div className="text-sm text-muted-foreground">
