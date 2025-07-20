@@ -59,6 +59,7 @@ export default {
 				'cat-orange': 'hsl(var(--cat-orange))',
 				'cat-cream': 'hsl(var(--cat-cream))',
 				'cat-brown': 'hsl(var(--cat-brown))',
+				'cat-purple': 'hsl(var(--cat-purple))',
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
