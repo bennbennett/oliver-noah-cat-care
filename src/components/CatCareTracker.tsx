@@ -115,6 +115,22 @@ const CatCareTracker = () => {
                 <p className="text-muted-foreground text-sm">
                   Thanks for taking great care of Jupi! 🐾
                 </p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    const today = format(new Date(), 'yyyy-MM-dd');
+                    setCheckIns(prev => prev.filter(checkIn => checkIn.date !== today));
+                    setTodayCheckedIn(null);
+                    toast({
+                      title: "Check-in reset",
+                      description: "You can now select a different caregiver for today.",
+                    });
+                  }}
+                  className="text-xs"
+                >
+                  Change Caregiver
+                </Button>
               </div>
             ) : (
               <div className="space-y-3">
