@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, DollarSign, User, Heart } from 'lucide-react';
-import { format, isToday, parseISO } from 'date-fns';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar, DollarSign, User, Heart, Edit } from 'lucide-react';
+import { format, isToday, parseISO, isWithinInterval } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 interface CheckIn {
@@ -15,6 +18,10 @@ interface CheckIn {
 const CatCareTracker = () => {
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [todayCheckedIn, setTodayCheckedIn] = useState<string | null>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [editingCheckIn, setEditingCheckIn] = useState<CheckIn | null>(null);
+  const [newCaregiver, setNewCaregiver] = useState<'oliver' | 'noah' | 'stacey'>('oliver');
   const { toast } = useToast();
 
   // Date range for cat care (July 20, 2025 - August 6, 2025)
@@ -78,6 +85,113 @@ const CatCareTracker = () => {
     return checkIns
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 5);
+  };
+
+  const handleDateSelect = (date: Date | undefined) => {
+    if (!date) return;
+    
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const existingCheckIn = checkIns.find(checkIn => checkIn.date === dateStr);
+    
+    setSelectedDate(date);
+    setEditingCheckIn(existingCheckIn || null);
+    setNewCaregiver(existingCheckIn?.caregiver || 'oliver');
+    setShowCalendar(true);
+  };
+
+  const handleSaveCheckIn = () => {
+    if (!selectedDate) return;
+    
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    
+    // Check if date is within allowed range
+    const isInRange = isWithinInterval(selectedDate, {
+      start: parseISO(startDate),
+      end: parseISO(endDate)
+    });
+    
+    if (!isInRange) {
+      toast({
+        title: "Invalid date",
+        description: "Please select a date within the care period (July 20 - August 6, 2025).",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (editingCheckIn) {
+      // Update existing check-in
+      setCheckIns(prev => prev.map(checkIn => 
+        checkIn.date === dateStr 
+          ? { ...checkIn, caregiver: newCaregiver }
+          : checkIn
+      ));
+      toast({
+        title: "Check-in updated!",
+        description: `Changed caregiver to ${newCaregiver === 'oliver' ? 'Oliver' : newCaregiver === 'noah' ? 'Noah' : 'Stacey'} for ${format(selectedDate, 'MMM d, yyyy')}.`,
+      });
+    } else {
+      // Add new check-in
+      const newCheckIn: CheckIn = {
+        date: dateStr,
+        caregiver: newCaregiver,
+        timestamp: new Date().toISOString(),
+      };
+      setCheckIns(prev => [...prev, newCheckIn]);
+      toast({
+        title: "Check-in added!",
+        description: `Added ${newCaregiver === 'oliver' ? 'Oliver' : newCaregiver === 'noah' ? 'Noah' : 'Stacey'} for ${format(selectedDate, 'MMM d, yyyy')}.`,
+      });
+    }
+    
+    // Update today's check-in if editing today
+    const today = format(new Date(), 'yyyy-MM-dd');
+    if (dateStr === today) {
+      setTodayCheckedIn(newCaregiver);
+    }
+    
+    setShowCalendar(false);
+    setSelectedDate(undefined);
+    setEditingCheckIn(null);
+  };
+
+  const handleDeleteCheckIn = () => {
+    if (!selectedDate) return;
+    
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    setCheckIns(prev => prev.filter(checkIn => checkIn.date !== dateStr));
+    
+    // Update today's check-in if deleting today
+    const today = format(new Date(), 'yyyy-MM-dd');
+    if (dateStr === today) {
+      setTodayCheckedIn(null);
+    }
+    
+    toast({
+      title: "Check-in deleted",
+      description: `Removed check-in for ${format(selectedDate, 'MMM d, yyyy')}.`,
+    });
+    
+    setShowCalendar(false);
+    setSelectedDate(undefined);
+    setEditingCheckIn(null);
+  };
+
+  const getCheckInDates = () => {
+    return checkIns.map(checkIn => parseISO(checkIn.date));
+  };
+
+  const getDayModifiers = () => {
+    const checkInDates = getCheckInDates();
+    return {
+      hasCheckIn: checkInDates,
+    };
+  };
+
+  const getDayModifiersClassNames = () => {
+    return {
+      hasCheckIn: 'bg-primary/20 text-primary font-semibold',
+    };
   };
 
   const today = format(new Date(), 'EEEE, MMMM do, yyyy');
@@ -215,6 +329,87 @@ const CatCareTracker = () => {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Calendar Management */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Edit className="h-5 w-5" />
+              Manage Check-ins
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Dialog open={showCalendar} onOpenChange={setShowCalendar}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="w-full">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  View Calendar & Edit Check-ins
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingCheckIn ? 'Edit Check-in' : 'Add Check-in'}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <CalendarComponent
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={handleDateSelect}
+                      modifiers={getDayModifiers()}
+                      modifiersClassNames={getDayModifiersClassNames()}
+                      className="rounded-md border pointer-events-auto"
+                      disabled={(date) => 
+                        !isWithinInterval(date, {
+                          start: parseISO(startDate),
+                          end: parseISO(endDate)
+                        })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Highlighted dates have check-ins. Click any date to add/edit.
+                    </p>
+                  </div>
+                  
+                  {selectedDate && (
+                    <div className="space-y-4 pt-4 border-t">
+                      <div className="text-sm font-medium">
+                        {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Caregiver:</label>
+                        <Select value={newCaregiver} onValueChange={(value: 'oliver' | 'noah' | 'stacey') => setNewCaregiver(value)}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="oliver">Oliver</SelectItem>
+                            <SelectItem value="noah">Noah</SelectItem>
+                            <SelectItem value="stacey">Stacey</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex gap-2 pt-2">
+                        <Button onClick={handleSaveCheckIn} className="flex-1">
+                          {editingCheckIn ? 'Update' : 'Add'} Check-in
+                        </Button>
+                        {editingCheckIn && (
+                          <Button variant="destructive" onClick={handleDeleteCheckIn}>
+                            Delete
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
